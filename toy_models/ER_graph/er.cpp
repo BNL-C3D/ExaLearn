@@ -18,6 +18,12 @@
 #include <cmath>
 #include <cassert>
 
+/* MPI */
+#ifdef USE_MPI
+#include <mpi.h>
+#endif
+/*******/
+
 
 #define INF                         (int)1000000007
 #define EPS                         1e-9
@@ -99,13 +105,42 @@ double stddev( vector<double> & v, double mean ){
 }
 
 int main( int argc, char * argv[] ){
-  if( argc < 4 ){ cerr << "./main 100 10 0.1\n"; return 1; }
+  
+#ifdef USE_MPI
+  MPI_Init(&argc, &argv);
+  int rank, world_sz;
+  MPI_Comm_size(MPI_COMM_WORLD, &world_sz);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+#endif
+
+  if( argc < 4 ){ cerr << "argc less than 4 ./main 100 10 0.1\n"; return 1; }
   int n = stoi(argv[1]), m = stoi(argv[2]);
   double p = stod(argv[3]); 
+
+#ifdef USE_MPI
+  int m_per_rank = m / world_sz;
+  int data_cnt   = m_per_rank+1;
+  vector<double> lcc_sz(data_cnt, -1.0);
+  vector<double> sz( data_cnt*world_sz );
+  if( rank < m%world_sz ) m_per_rank += 1;
+  forall(i,0,m_per_rank){
+    lcc_sz[i] = ergccsz(n,p);
+  }
+
+  MPI_Gather( &lcc_sz[0], data_cnt, MPI_DOUBLE, &sz[0], data_cnt, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+  if( rank == 0 ){
+    sz.erase( remove_if( all(sz), [](double x){ return x < 0; } ), sz.end() );
+    double avg = mean(sz);
+    double std = stddev(sz,avg);
+    cout << avg << ' ' << std << '\n';
+  }
+  MPI_Finalize();
+#else
   vector<double> sz;
   while(m-->0) sz.pb(ergccsz(n,p));
   double avg = mean(sz);
   double std = stddev(sz, avg);
   cout << avg << ' ' << std << '\n';
+#endif
   return 0;
 }
