@@ -85,6 +85,7 @@ mt19937 rnd( rd() );
 uniform_real_distribution<double> dist(0.0, 1.0);
 
 double ergccsz(int n, double p){
+	// erdos-renyi graph calculate component size
   vector<double> v(n*(n+1)/2);
   for(auto & x : v ) x = dist(rnd);
   UF uf(n);
