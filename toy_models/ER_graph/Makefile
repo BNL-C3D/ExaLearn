@@ -1,4 +1,9 @@
-CXX=g++
+### ER Graph Makefile ###
+
+SHELL= /bin/bash
+CXX= g++
+TARGETS= er  
+
 all: er.cpp
 	$(CXX) -std=c++14 -O3 er.cpp -o er 
 
@@ -14,4 +19,5 @@ copy:
 cp:
 	cat er.cpp | xclip -selection clipboard
 
-
+clean:
+	rm -f $(TARGETS)
