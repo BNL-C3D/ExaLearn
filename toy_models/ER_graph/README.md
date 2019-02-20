@@ -1,6 +1,8 @@
 # ER Random Graph model
 ## Intro
 [Erdos-Renyi model](https://en.wikipedia.org/wiki/Erd%C5%91s%E2%80%93R%C3%A9nyi_model)
+A graph G(n, p) is constructed by connecting nodes randomly. Each edge is included in the graph with probability p independent from every other edge.
+The threshold for connectedness is ln(n)/n. A graph in G(n, p) will almost surely contain isolated vertices if p < ln(n)/n and thus be disconnected. Whereas if p > ln(n)/n then a graph in G(n, p) will almost surely be connected.
 
 ## Compile
 * `make`
