@@ -55,7 +55,7 @@ def evolve(
            
            save_to_file=False, 
            file_npz_out='tmp.npz'):
-    r"""
+    """
     :math:`\vspace{-1mm}`
 
     Evolve a set of initial conditions forward in time using the COLA 
@@ -171,6 +171,10 @@ def evolve(
     from scipy import interpolate
     from cic import CICDeposit_3
     
+
+    print "*** FULL:", FULL
+    print "*** cellsize_zoom:", cellsize_zoom
+
     if (cellsize_zoom==0):
         BBox_in=array([[0,0],[0,0],[0,0]],dtype='int32')
     else:
@@ -333,6 +337,29 @@ def evolve(
         vy_zoom = initial_d_growth *  (sy_full_zoom) + initial_d_growth2 * (sy2_full_zoom)
         vz_zoom = initial_d_growth *  (sz_full_zoom) + initial_d_growth2 * (sz2_full_zoom)
     
+    ### DJB: idiot necessary type casting
+
+    from numpy import float64,float32
+    sx=sx.astype(float32)
+    sy=sy.astype(float32)
+    sz=sz.astype(float32)
+    sx2=sx2.astype(float32)
+    sy2=sy2.astype(float32)
+    sz2=sz2.astype(float32)
+    sx_zoom=sx_zoom.astype(float32)
+    sy_zoom=sy_zoom.astype(float32)
+    sz_zoom=sz_zoom.astype(float32)
+    sx2_zoom=sx2_zoom.astype(float32)
+    sy2_zoom=sy2_zoom.astype(float32)
+    sz2_zoom=sz2_zoom.astype(float32)
+    sx_full=sx_full.astype(float32)
+    sy_full=sy_full.astype(float32)
+    sz_full=sz_full.astype(float32)
+    sx_full_zoom=sx_full_zoom.astype(float32)
+    sy_full_zoom=sy_full_zoom.astype(float32)
+    sz_full_zoom=sz_full_zoom.astype(float32)
+
+
     print "Smoothing arrays for the COLA game ..."
     from box_smooth import box_smooth
     tmp=zeros(sx_full.shape,dtype='float32')
@@ -482,6 +509,16 @@ def evolve(
         
         # Note that grad_phi_engine() will subtract the lpt forces in the COLA volume
         # before doing the kick.
+
+        ### DJB: idiot necessary type casting
+        beta = float32(beta)
+        vx=vx.astype(float32)
+        vy=vy.astype(float32)
+        vz=vz.astype(float32)
+        vx_zoom=vx_zoom.astype(float32)
+        vy_zoom=vy_zoom.astype(float32)
+        vz_zoom=vz_zoom.astype(float32)
+
         grad_phi_engine( px,py,pz,  vx,vy,vz,  sx,sy,sz, sx2,sy2,sz2,  beta,   beta,                                             
                                 npart_x,npart_y,npart_z, phi,ngrid_x,ngrid_y,ngrid_z, cellsize,gridcellsize, d,                     
                                 d*d*(1.0+7./3.*Om143),array([0.0,0.0,0.0],dtype='float32'),0)                                                                              
@@ -562,20 +599,31 @@ def evolve(
     end = time.time()
     print "Time elapsed on small box (including IC): "+str(end - start) + " seconds."
     
+
+    #### Set all these params to zero if cellsize_zoom==0 for ease. 
+    ##### these prob shoudl have been initialized elsewhere. 
+    px_zoom = 0 
+    py_zoom=0
+    pz_zoom=0
+    vx_zoom = 0 
+    vy_zoom=0
+    vz_zoom=0
+    
     if save_to_file:
         from numpy import savez
         savez( file_npz_out ,
-            px_zoom=px_zoom,py_zoom=py_zoom,pz_zoom=pz_zoom,
-            vx_zoom=vx_zoom,vy_zoom=vy_zoom,vz_zoom=vz_zoom,
-            cellsize_zoom=cellsize_zoom,
-            px=px,py=py,pz=pz,
-            vx=vx,vy=vy,vz=vz,
-            cellsize=cellsize,
-            ngrid_x=ngrid_x,ngrid_y=ngrid_y,ngrid_z=ngrid_z,
-            z_final=1.0/(aDrift)-1.0,z_init=1.0/(a_initial)-1.0,
-            n_steps=n_steps,Om=Om,Ol=Ol,nCola=nCola,
-            ngrid_x_lpt=ngrid_x_lpt,ngrid_y_lpt=ngrid_y_lpt,ngrid_z_lpt=ngrid_z_lpt,
-            gridcellsize=gridcellsize,
-            gridcellsize_lpt=gridcellsize_lpt)
+            #px_zoom=px_zoom,py_zoom=py_zoom,pz_zoom=pz_zoom,
+            #vx_zoom=vx_zoom,vy_zoom=vy_zoom,vz_zoom=vz_zoom,
+            #cellsize_zoom=cellsize_zoom,
+            px=px,py=py,pz=pz
+            #vx=vx,vy=vy,vz=vz,
+            #cellsize=cellsize,
+            #ngrid_x=ngrid_x,ngrid_y=ngrid_y,ngrid_z=ngrid_z,
+            #z_final=1.0/(aDrift)-1.0,z_init=1.0/(a_initial)-1.0,
+            #n_steps=n_steps,Om=Om,Ol=Ol,nCola=nCola,
+            #ngrid_x_lpt=ngrid_x_lpt,ngrid_y_lpt=ngrid_y_lpt,ngrid_z_lpt=ngrid_z_lpt,
+            #gridcellsize=gridcellsize,
+            #gridcellsize_lpt=gridcellsize_lpt
+        )
     return px,py,pz,vx,vy,vz,px_zoom,py_zoom,pz_zoom,vx_zoom,vy_zoom,vz_zoom
     
