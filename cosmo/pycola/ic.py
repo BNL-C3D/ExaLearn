@@ -231,17 +231,21 @@ def import_music_snapshot(hdf5_filename,boxsize,level0='09',level1=None):
     """
     
     import h5py
+    from numpy import zeros
     print "Starting import ..."
     ss = h5py.File(hdf5_filename, "r")
-    
+
     # for some reason MUSIC pads with 4 elements the displacement arrays  
     # when `format = generic` in the MUSIC conf file.
     # In my checks, this did not depend on the settings for the
     # padding and overlap keywords. So, hardwiring this number...
-    
-    sx      = ss['level_0'+level0+'_DM_dx'].value[4:-4, 4:-4,  4:-4]*boxsize
-    sy      = ss['level_0'+level0+'_DM_dy'].value[4:-4, 4:-4,  4:-4]*boxsize
-    sz      = ss['level_0'+level0+'_DM_dz'].value[4:-4, 4:-4,  4:-4]*boxsize
+    #sx =  zeros((boxsize,boxsize,boxsize),dtype='float32')
+    #sy =  zeros((boxsize,boxsize,boxsize),dtype='float32')
+    #sz =  zeros((boxsize,boxsize,boxsize),dtype='float32')
+
+    sx      = (ss['level_0'+level0+'_DM_dx'].value[4:-4, 4:-4,  4:-4]*boxsize)
+    sy      = (ss['level_0'+level0+'_DM_dy'].value[4:-4, 4:-4,  4:-4]*boxsize)
+    sz      = (ss['level_0'+level0+'_DM_dz'].value[4:-4, 4:-4,  4:-4]*boxsize)
     if not (level1 is None):
         offset=[ss['header']['grid_off_x'].value[-1],
                                  ss['header']['grid_off_y'].value[-1],
@@ -273,7 +277,7 @@ def ic_2lpt(
            ngrid_x_lpt=128,ngrid_y_lpt=128,ngrid_z_lpt=128,
 
            
-           cellsize_zoom=0,offset_zoom=None,BBox_in=None,
+           cellsize_zoom=0.0,offset_zoom=None,BBox_in=None,
            growth_2pt_calc=0.05,
            with_4pt_rule = False,
            factor_4pt=2.0
@@ -485,7 +489,7 @@ def ic_2lpt_engine(
          
          
          offset_zoom=None):
-    r""" 
+    """ 
     :math:`\vspace{-1mm}`
 
     The same as :func:`ic.ic_2lpt` above, but calculates the 2LPT displacements for the particles in the 
@@ -759,7 +763,19 @@ def ic_2lpt_engine(
         sx2_full = zeros((0,0,0),dtype='float32')
         sy2_full = zeros((0,0,0),dtype='float32')
         sz2_full = zeros((0,0,0),dtype='float32')
-        
+
+    ### DJB: idiot necessary type casting
+    sx_full=sx_full.astype(float32)
+    sy_full=sy_full.astype(float32)
+    sz_full=sz_full.astype(float32)
+
+    sx_full_zoom=sx_full_zoom.astype(float32)
+    sy_full_zoom=sy_full_zoom.astype(float32)
+    sz_full_zoom=sz_full_zoom.astype(float32)
+
+   
+   
+    
     CICDeposit_3(         sx_full,
                           sy_full,
                           sz_full,
@@ -769,12 +785,12 @@ def ic_2lpt_engine(
                           density,
                           
                           cellsize,gridcellsize,
-                          1,
+                          float32(1.0),
                           growth_2pt_calc,
                           L2,
                           
                           BBox_in,
-                          offset,1)
+                          offset,float32(1.0))
                           
     if (cellsize_zoom!=0):
         CICDeposit_3(sx_full_zoom,

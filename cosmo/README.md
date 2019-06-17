@@ -30,6 +30,11 @@ generate initial conditions.
 
 Usually HPC clusters have `anaconda2/3` module. To see if it is there, `$ module avail`. 
 Then, to load the `anaconda3`: `$ module load anaconda3`
+
+* create pycola conda environment `conda env create -f pycola_env.yml`
+* `cd music; make; cd ..`
+* `cd pycola; python setup.py build_ext --inplace`
+
 ## TODO
 
 [ ] workflow
