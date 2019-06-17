@@ -26,6 +26,10 @@ generate initial conditions.
 * `03_hist_nbody.py`, generates the 3D histogram from the particles.
     -   `python 03_hist_nbody.py -i peter_ics_bl_512.npz -o peter_ics_hist.npz -n 256 -b 512`
 
+## Setup Conda Environment in HPC clusters
+
+Usually HPC clusters have `anaconda2/3` module. To see if it is there, `$ module avail`. 
+Then, to load the `anaconda3`: `$ module load anaconda3`
 ## TODO
 
 [ ] workflow
