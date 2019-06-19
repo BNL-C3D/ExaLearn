@@ -8,18 +8,18 @@ def split_3d_volume( input_file, nbins=256, box_length=512 ):
         input_file is in npz format as output of pycola
     """
     data = np.load(input_file)
-    print(len(data), type(data['px']), data['px'].dtype);
+    #print(len(data), type(data['px']), data['px'].dtype);
 
     px, py, pz = data['px'].flatten(), data['py'].flatten(), data['pz'].flatten()
-    print('px shape:',px.shape)
+    #print('px shape:',px.shape)
     
     ps = np.hstack( (px[:,None], py[:,None], pz[:,None]) );
 
-    print('ps shape:', ps.shape )
-    print('max :', ps.max(axis=1) )
+    #print('ps shape:', ps.shape )
+    #print('max :', ps.max(axis=1) )
 
     H, bins = np.histogramdd(ps, nbins, range=[(0,box_length)]*3 )
-    print('H', H.shape);
+    #print('H', H.shape);
 
     count = -1
     res = [];
