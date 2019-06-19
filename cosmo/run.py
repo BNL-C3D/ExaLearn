@@ -36,7 +36,7 @@ pycola_evolve       =   timeit_if(   pycola_evolve,       threshold=args.verbosi
 split_3d_volume     =   timeit_if(   split_3d_volume,     threshold=args.verbosity)
 
 if __name__ == '__main__':
-    fname = '_'.join(["data", str(args.omega_m), str(args.w0),
+    fname = '_'.join(["pycola", str(args.omega_m), str(args.w0),
                       str(args.sigma8), uuid.uuid4().hex.upper()])
     print( fname )
     generate_cfg_file('./cfg/'+fname,\
@@ -48,6 +48,8 @@ if __name__ == '__main__':
     pycola_evolve('./cfg/'+fname+".hdf5", './output/'+fname+'.npz', 512, 9)
     res = split_3d_volume('./output/'+fname+'.npz', 256, 512)
     for idx, mtx in enumerate(res):
-        with open( './output/test'+'_'+str(idx)+".npy", 'w') as f:
+        with open( './output/'+fname+'_'+str(idx)+".npy", 'w') as f:
             np.save(f, mtx);
-    #TODO clean up, remove the big files
+    ## clean up
+    os.remove('./cfg/'+fname+'.hdf5')
+    os.remove('./output/'+fname+'.npz')
