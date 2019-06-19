@@ -5,7 +5,7 @@ from src.gen_music_cfg import generate_cfg_file
 from src.pycola_evolve import pycola_evolve
 from src.hist_nbody    import split_3d_volume
 from src.timeit_if     import timeit_if
-import time, argparse, uuid
+import time, argparse, uuid, os
 import numpy as np
 
 parser = argparse.ArgumentParser()
