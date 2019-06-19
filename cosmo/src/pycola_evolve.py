@@ -1,42 +1,17 @@
-########################################################################
-########################################################################
-#    Copyright (c) 2013,2014       Svetlin Tassev
-#                       Princeton University,Harvard University
-#
-#   This file is part of pyCOLA.
-#
-#   pyCOLA is free software: you can redistribute it and/or modify
-#   it under the terms of the GNU General Public License as published by
-#   the Free Software Foundation, either version 3 of the License, or
-#   (at your option) any later version.
-#
-#   pyCOLA is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#   GNU General Public License for more details.
-#
-#   You should have received a copy of the GNU General Public License
-#   along with pyCOLA.  If not, see <http://www.gnu.org/licenses/>.
-#
-########################################################################
-########################################################################
+## modified from pycola evolve function
 
 import numpy as np
-import matplotlib.pyplot as plt
+import sys, os
+PYCOLA_DIR = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0],r'pycola')
+sys.path.append(PYCOLA_DIR)
+import pyximport
+pyximport.install()
 from aux import boundaries
 from ic import ic_2lpt,import_music_snapshot
 from evolve import evolve
 from cic import CICDeposit_3
 from potential import initialize_density
-import argparse
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--input_file",help="input hdf5 file from MUSIC", type=str, required=True)
-parser.add_argument("-o", "--output_file",help="output file in npz format", type=str, required=True)
-parser.add_argument("-b", "--box-length", help="box length", type=int, required=True)
-parser.add_argument("-l", "--level", help="level", type=int, required=True)
-parser.add_argument("-g", "--grid-scale", default=3, help="set grid scale [=3]", type=int)
-args = parser.parse_args()
 
 def pycola_evolve(input_file, output_file, box_length, level, gridscale=3) :
     # Set up the parameters from the MUSIC ic snapshot:
@@ -220,7 +195,3 @@ def pycola_evolve(input_file, output_file, box_length, level, gridscale=3) :
 
     del vx_zoom,vy_zoom,vz_zoom
     del vx,vy,vz
-
-if __name__ == '__main__':
-    pycola_evolve(args.input_file, args.output_file, args.box_length, args.level, args.grid_scale)
-

@@ -40,3 +40,16 @@ Then, to load the `anaconda3`: `$ module load anaconda3`
 [ ] workflow
 [ ] consistent dir structure
 [ ] gen batch of data given cosmological parameters.
+
+## Troubleshoot
+### Install MUSIC
+* If cannot find hd5.h file, edit the CONDA env in Makefile
+* If cannot find fftw3, 
+    - install it from scratch
+
+```
+    wget http://www.fftw.org/fftw-3.3.8.tar.gz
+    ./configure --enable-openmp --enable-float
+    make install
+```
+    - try to allocate it using `ldconfig -v | grep fftw3`
