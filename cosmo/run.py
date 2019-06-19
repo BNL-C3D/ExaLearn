@@ -26,24 +26,25 @@ optional.add_argument("--rand_seed", help="random seed", type=int)
 optional.add_argument("-v", "--verbosity", action="count")
 args = parser.parse_args()
 
+def run_music( cfg_file ):
+    msg = Popen( ['./music/MUSIC', cfg_file], stdout=PIPE).communicate()[0]
+    return msg
 
 generate_cfg_file   =   timeit_if(   generate_cfg_file,   threshold=args.verbosity)
-Popen               =   timeit_if(   Popen,               threshold=args.verbosity)
+run_music           =   timeit_if(   run_music,           threshold=args.verbosity)
 pycola_evolve       =   timeit_if(   pycola_evolve,       threshold=args.verbosity)
 split_3d_volume     =   timeit_if(   split_3d_volume,     threshold=args.verbosity)
 
 if __name__ == '__main__':
-
-    fname = '_'.join(["data", str(args.omega_m), str(args.w0), str(args.sigma8),
-                             uuid.uuid4().hex.upper()])
+    fname = '_'.join(["data", str(args.omega_m), str(args.w0),
+                      str(args.sigma8), uuid.uuid4().hex.upper()])
     print( fname )
     generate_cfg_file('./cfg/'+fname,\
             args.omega_m, \
             args.w0, \
             args.sigma8, \
             args.rand_seed)
-#    generate_cfg_file( args.output_file, './cfg/test', 0.3,-1.0,0.7) 
-    msg = Popen(['./music/MUSIC', './cfg/'+fname+".cfg"], stdout=PIPE).communicate()[0]
+    msg = run_music('./cfg/'+fname+'.cfg')
     pycola_evolve('./cfg/'+fname+".hdf5", './output/'+fname+'.npz', 512, 9)
     res = split_3d_volume('./output/'+fname+'.npz', 256, 512)
     for idx, mtx in enumerate(res):
