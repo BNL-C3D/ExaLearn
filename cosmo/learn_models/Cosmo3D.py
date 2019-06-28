@@ -3,6 +3,10 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 
+## example usage:
+#  data_dir = '/home/yren/data/cosmo_data/npy/'
+#  train_data, test_data = Cosmo3D(data_dir, train=True), Cosmo3D(data_dir, train=False)
+
 class Cosmo3D(Dataset):
     def __init__(self, base_folder, train=True, transform=None, target_transform=None, download=False):
         """
