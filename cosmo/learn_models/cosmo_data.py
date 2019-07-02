@@ -1,7 +1,7 @@
-from torch.utils.data import Dataset
-from pathlib import Path
+from torch.utils.data import Dataset, DataLoader 
 import pandas as pd
 import numpy as np
+from pathlib import Path
 
 ## example usage:
 #  data_dir = '/home/yren/data/cosmo_data/npy/'
@@ -40,4 +40,15 @@ class Cosmo3D(Dataset):
     def __len__(self):
         return len(self.df)
 
+def np_norm(x): return np.expand_dims((x-8)/28.871186, axis=0)
 
+def get_data(data_dir, bsz, num_workers=8, pin_memory=True):
+    # data_dir = '/home/yren/data/cosmo_data/npy/'
+    assert(Path(data_dir).exists() and Path(data_dir).is_dir())
+    train_data = Cosmo3D(data_dir, transform=np_norm)
+    test_data = Cosmo3D(data_dir, train=False)
+    train_loader = DataLoader(train_data, batch_size=bsz, \
+                            shuffle=True, num_workers=num_workers, \
+                            pin_memory=pin_memory)
+    test_loader = DataLoader(test_data, batch_size=2*bsz)
+    return train_loader, test_loader
