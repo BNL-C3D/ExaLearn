@@ -11,7 +11,7 @@ from ic import ic_2lpt,import_music_snapshot
 from evolve import evolve
 from cic import CICDeposit_3
 from potential import initialize_density
-
+import argparse
 
 def pycola_evolve(input_file, output_file, box_length, level, gridscale=3) :
     # Set up the parameters from the MUSIC ic snapshot:
@@ -195,3 +195,19 @@ def pycola_evolve(input_file, output_file, box_length, level, gridscale=3) :
 
     del vx_zoom,vy_zoom,vz_zoom
     del vx,vy,vz
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser._action_groups.pop()
+    required = parser.add_argument_group('required arguments')
+    optional = parser.add_argument_group('optional arguments')
+    required.add_argument("-i", "--input_file",help="input hdf5 file from MUSIC", type=str, required=True)
+    required.add_argument("-o", "--output_file",help="output file in npz format", type=str, required=True)
+    required.add_argument("-b", "--box-length", help="box length", type=int, required=True)
+    required.add_argument("-l", "--level", help="level", type=int, required=True)
+    optional.add_argument("-g", "--grid-scale", default=3, help="set grid scale [=3]", type=int)
+    args = parser.parse_args()
+
+    pycola_evolve(args.input_file, args.output_file, args.box_length, 
+                  args.level, args.grid_scale)
+
