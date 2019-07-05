@@ -26,7 +26,7 @@ if __name__ == "__main__":
                           action='store', choices=['cosmoflow', 'resnext3d'],
                           type=str, required=True)
     required.add_argument("-o", "--optim", help="select optimizer",
-                          action='store', choices=['SGD', 'Adam'],
+                          action='store', choices=['sgd', 'adam'],
                           type=str, required=True)
     required.add_argument("-i", "--input-data", help="directory containing input data", type=str, required=True)
     required.add_argument("-l", "--learning-rate", help="learning rate", type=float, required=True)
@@ -46,19 +46,19 @@ if __name__ == "__main__":
 
     print("pin memory = ", args.no_pin_memory)
 
-    learning_rate, batch_size = args.lr, args.batch_size
+    lr, batch_size = args.learning_rate, args.batch_size
     torch.cuda.set_device(args.gpu_device_id)
     train_loader, test_loader = cosmo_data.get_data(args.input_data,
                                                 bsz=args.batch_size,
                                                 num_workers=args.num_workers,
-                                                pin_memory=no_pin_memory)
+                                                pin_memory=args.no_pin_memory)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model  = get_model(args.arch)
     model.to(device)
-    if args.optim == "Adam":
-        optim = torch.optim.Adam(model.parameters(), lr=args.lr)
-    elif args.optim == "SGD":
-        optim = torch.optim.SDG(model.parameters(), lr=args.lr)
+    if args.optim == "adam":
+        optim = torch.optim.Adam(model.parameters(), lr=lr)
+    elif args.optim == "sgd":
+        optim = torch.optim.SDG(model.parameters(), lr=lr)
     else:
         print(args.optim, "not supported", file=sys.stderr)
         raise NotImplementedError
@@ -66,6 +66,8 @@ if __name__ == "__main__":
     exp_name = args.experiment_name
     epochs = args.epochs
     writer = SummaryWriter(Path(args.tensorboard)/exp_name)
+    (Path(args.tensorboard)/exp_name).mkdir(parents=True, exist_ok=True)
+    (Path(args.save)/exp_name).mkdir(parents=True, exist_ok=True)
 
     for epoch in range(epochs):
         tot_loss_train, tot_loss_test = 0, 0
