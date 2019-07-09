@@ -1,4 +1,2 @@
-# ExaLearn
+# ExaLearn Project
 
-## COSMOLOGY
-[NERSC:cosmoflow-sims](https://github.com/NERSC/cosmoflow-sims)

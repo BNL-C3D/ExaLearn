@@ -3,7 +3,7 @@
 #SBATCH -J pycola
 #SBATCH -t 1-2:00:00 # 1day 2 hours
 #SBATCH --mail-type=ALL
-#SBATCH --mail-user yren@bnl.gov
+#SBATCH --mail-user <yourname>@<your.domain>
 
 module load anaconda3
 source activate pycola
