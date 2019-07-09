@@ -7,11 +7,13 @@ import cosmo_data
 from cosmo_models import CosmoNet, ResNet3d, Bottleneck3d
 import argparse
 
+NUM_CLASS = 6
+
 def get_model( arch ):
     if arch == "cosmoflow":
-        return CosmoNet()
+        return CosmoNet(NUM_CLASS)
     elif arch == "resnext3d":
-        return ResNet3d(Bottleneck3d, [3,4,6,3], groups=32, width_per_group=4)
+        return ResNet3d(Bottleneck3d, [3,4,6,3], NUM_CLASS, groups=32, width_per_group=4)
     else:
         print(arch, "not supported", file=sys.stderr)
         raise NotImplementedError

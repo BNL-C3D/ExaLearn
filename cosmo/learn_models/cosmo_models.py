@@ -8,7 +8,7 @@ class Flatten(nn.Module):
         
 class CosmoNet(nn.Module):
 
-    def __init__(self, num_class=30):
+    def __init__(self, num_class):
         super(CosmoNet, self).__init__()
         self.conv1 = nn.Sequential(nn.Conv3d(1, 16, kernel_size=(3,3,3)),
                                    nn.AvgPool3d(2, stride=2))
@@ -105,7 +105,7 @@ class Bottleneck3d(nn.Module):
 
 class ResNet3d(nn.Module):
 
-    def __init__(self, block, layers, num_classes=30, zero_init_residual=False,
+    def __init__(self, block, layers, num_classes, zero_init_residual=False,
                  groups=1, width_per_group=64, replace_stride_with_dilation=None,
                  norm_layer=None):
         super(ResNet3d, self).__init__()
