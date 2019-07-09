@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import cosmo_data
 from cosmo_models import CosmoNet, ResNet3d, Bottleneck3d
-import argparse
+import argparse, time
 
 NUM_CLASS = 6
 
@@ -14,6 +14,8 @@ def get_model( arch ):
         return CosmoNet(NUM_CLASS)
     elif arch == "resnext3d":
         return ResNet3d(Bottleneck3d, [3,4,6,3], NUM_CLASS, groups=32, width_per_group=4)
+    elif arch == "resnext3dsmall":
+        return ResNet3d(Bottleneck3d, [1,2,3,2], NUM_CLASS, groups=32, width_per_group=4)
     else:
         print(arch, "not supported", file=sys.stderr)
         raise NotImplementedError
@@ -25,7 +27,8 @@ if __name__ == "__main__":
     optional = parser.add_argument_group('optional arguments')
     required.add_argument("-n", "--experiment-name", help="experiment name", type=str, required=True)
     required.add_argument("-a", "--arch", help="select model architecture",
-                          action='store', choices=['cosmoflow', 'resnext3d'],
+                          action='store',
+                          choices=['cosmoflow', 'resnext3d', 'resnext3dsmall'],
                           type=str, required=True)
     required.add_argument("-o", "--optim", help="select optimizer",
                           action='store', choices=['sgd', 'adam'],
@@ -45,8 +48,6 @@ if __name__ == "__main__":
     optional.add_argument("--tensorboard", help="directory to save tensorboard \
                           summary", type=str, default="./runs/", required=False)
     args = parser.parse_args() 
-
-    print("pin memory = ", args.no_pin_memory)
 
     lr, batch_size = args.learning_rate, args.batch_size
     torch.cuda.set_device(args.gpu_device_id)
@@ -73,6 +74,7 @@ if __name__ == "__main__":
 
     for epoch in range(epochs):
         tot_loss_train, tot_loss_test = 0, 0
+        start_time = time.time()
         cnt = 0
         for x,y in train_loader:
             x,y = x.to(device).float(), y.to(device)
@@ -83,6 +85,7 @@ if __name__ == "__main__":
             optim.zero_grad()
             loss.backward()
             optim.step()
+        writer.add_scalar('epoch_time', time.time()-start_time, epoch)
         writer.add_scalar('train_loss', tot_loss_train/len(train_loader), epoch)
             
         acc, tot = 0,0
