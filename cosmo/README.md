@@ -115,8 +115,63 @@ optional arguments:
 ```
 
 ### Training Deep Learning Models
-We use the 
+We use the [PyTorch](http://pytorch.org/) deep learning framework.  To better
+manage, process and transform the cosmology simulation results, the data set is
+wrapped by a class called `cosmo_data.Cosmo3D`, inherited from the
+`torch.utils.data.dataset.Dataset` class.
+Since the data set is very large and cannot fit into the memory all at once, one needs to create a pandas data frame. The script to generate the data frame file is `./learn_models/utils/create_dataset.py`.
 
+```
+usage: create_dataset.py [-h] -i DATA_DIRECTORY [--split-ratio SPLIT_RATIO]
+                         [--random-seed RANDOM_SEED]
+
+required arguments:
+  -i DATA_DIRECTORY, --data-directory DATA_DIRECTORY
+                        directory contains npy data
+
+optional arguments:
+  --split-ratio SPLIT_RATIO
+                        percentage of data used for training [=0.9]
+  --random-seed RANDOM_SEED
+                        specify random seed [=NULL]
+```
+
+Once the data frame is generated, one can use the `./learn_models/cosmo_train.py` to train deep learning models. 
+
+```
+usage: cosmo_train.py [-h] -n EXPERIMENT_NAME -a
+                      {cosmoflow,resnext3d,resnext3dsmall} -o {sgd,adam} -i
+                      INPUT_DATA -l LEARNING_RATE -b BATCH_SIZE -e EPOCHS
+                      [--no-pin-memory] [--gpu-device-id GPU_DEVICE_ID]
+                      [--num-workers NUM_WORKERS] [--save SAVE]
+                      [--tensorboard TENSORBOARD]
+
+required arguments:
+  -n EXPERIMENT_NAME, --experiment-name EXPERIMENT_NAME
+                        experiment name
+  -a {cosmoflow,resnext3d,resnext3dsmall}, --arch {cosmoflow,resnext3d,resnext3dsmall}
+                        select model architecture
+  -o {sgd,adam}, --optim {sgd,adam}
+                        select optimizer
+  -i INPUT_DATA, --input-data INPUT_DATA
+                        directory containing input data
+  -l LEARNING_RATE, --learning-rate LEARNING_RATE
+                        learning rate
+  -b BATCH_SIZE, --batch-size BATCH_SIZE
+                        batch size
+  -e EPOCHS, --epochs EPOCHS
+                        number of epochs
+
+optional arguments:
+  --no-pin-memory       Not using pin memory
+  --gpu-device-id GPU_DEVICE_ID
+                        GPU device id [=0]
+  --num-workers NUM_WORKERS
+                        number of data loading workers [=8]
+  --save SAVE           directory to save model checkpoints
+  --tensorboard TENSORBOARD
+                        directory to save tensorboard summary
+```
 
 
 ## Install 
@@ -174,6 +229,7 @@ Then, to load the `anaconda3`: `$ module load anaconda3`
     - try to allocate it using `ldconfig -v | grep fftw3`
 
 ## References
-[CosmoFlow](https://arxiv.org/abs/1808.04728)
-[CosmoGAN](https://arxiv.org/abs/1706.02390)
-[NERSC:cosmoflow-sims](https://github.com/NERSC/cosmoflow-sims)
+
+* [CosmoFlow](https://arxiv.org/abs/1808.04728)
+* [CosmoGAN](https://arxiv.org/abs/1706.02390)
+* [NERSC:cosmoflow-sims](https://github.com/NERSC/cosmoflow-sims)
