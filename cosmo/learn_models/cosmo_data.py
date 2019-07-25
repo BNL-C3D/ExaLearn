@@ -1,4 +1,4 @@
-from torch.utils.data import Dataset, DataLoader 
+from torch.utils.data import Dataset, DataLoader, SubsetRandomSampler
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -42,13 +42,33 @@ class Cosmo3D(Dataset):
 
 def np_norm(x): return np.expand_dims((x-8)/28.871186, axis=0)
 
-def get_data(data_dir, bsz, num_workers=8, pin_memory=True):
+def get_data(data_dir, bsz, num_workers=8, pin_memory=True,\
+             amount=None, seed=None):
+    """
+        create train data loader and validation data loader
+        support subset sampling by assigning "amount" 
+
+        NOTE: to make sure the member models of an ensemble have the same subset,
+        a random seed should need to be specified.
+    """
     # data_dir = '/home/yren/data/cosmo_data/npy/'
     assert(Path(data_dir).exists() and Path(data_dir).is_dir())
     train_data = Cosmo3D(data_dir, transform=np_norm)
     test_data = Cosmo3D(data_dir, train=False, transform=np_norm)
-    train_loader = DataLoader(train_data, batch_size=bsz, \
-                            shuffle=True, num_workers=num_workers, \
-                            pin_memory=pin_memory)
-    test_loader = DataLoader(test_data, batch_size=2*bsz)
+    if not amount:
+        train_loader = DataLoader(train_data, batch_size=bsz, \
+                                shuffle=True, num_workers=num_workers, \
+                                pin_memory=pin_memory)
+        test_loader = DataLoader(test_data, batch_size=2*bsz)
+    else:
+        if amount < 1: amount = int(len(train_data)*amount)
+        assert( 0 < amount < len(train_data) )
+        idx = np.arange(len(train_data))
+        np.random.seed(seed)
+        np.random.shuffle(idx)
+        train_loader = DataLoader(train_data, batch_size=bsz, \
+                                  sampler=SubsetRandomSampler(idx[:amount]), \
+                                  pin_memory=pin_memory)
+        test_loader = DataLoader(test_data, batch_size=2*bsz)
+
     return train_loader, test_loader

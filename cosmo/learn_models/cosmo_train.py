@@ -42,11 +42,13 @@ if __name__ == "__main__":
     optional.add_argument("--gpu-device-id", help="GPU device id [=0]", type=int,
                           required=False, default=0)
     optional.add_argument("--num-workers", help="number of data loading workers [=8]",
-                          type=int, required=False, default=8)
+                          type=int, required=False, default=4)
     optional.add_argument("--save", help="directory to save model checkpoints",
                           type=str, default="./save/", required=False)
     optional.add_argument("--tensorboard", help="directory to save tensorboard \
                           summary", type=str, default="./runs/", required=False)
+    optional.add_argument("--use-subset-data", help="train on a subset of the \
+                          training data.", type=float, default=None, required=False)
     args = parser.parse_args() 
 
     lr, batch_size = args.learning_rate, args.batch_size
@@ -54,14 +56,15 @@ if __name__ == "__main__":
     train_loader, test_loader = cosmo_data.get_data(args.input_data,
                                                 bsz=args.batch_size,
                                                 num_workers=args.num_workers,
-                                                pin_memory=args.no_pin_memory)
+                                                pin_memory=args.no_pin_memory,
+                                                    amount=args.use_subset_data)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model  = get_model(args.arch)
     model.to(device)
     if args.optim == "adam":
         optim = torch.optim.Adam(model.parameters(), lr=lr)
     elif args.optim == "sgd":
-        optim = torch.optim.SDG(model.parameters(), lr=lr)
+        optim = torch.optim.SGD(model.parameters(), lr=lr)
     else:
         print(args.optim, "not supported", file=sys.stderr)
         raise NotImplementedError
@@ -71,6 +74,8 @@ if __name__ == "__main__":
     writer = SummaryWriter(Path(args.tensorboard)/exp_name)
     (Path(args.tensorboard)/exp_name).mkdir(parents=True, exist_ok=True)
     (Path(args.save)/exp_name).mkdir(parents=True, exist_ok=True)
+
+    best_acc = 0
 
     for epoch in range(epochs):
         tot_loss_train, tot_loss_test = 0, 0
@@ -100,9 +105,20 @@ if __name__ == "__main__":
         writer.add_scalar('test_loss', tot_loss_test/tot/len(test_loader), epoch)
         writer.add_scalar('test_acc', acc/tot, epoch)
     
-        if (epoch+1)%20 == 0:
+        #if (epoch+1)%20 == 0:
+        #    torch.save({
+        #        'epoch':epoch,
+        #        'model_state_dict': model.state_dict(),
+        #        'optimizer_state_dict': optim.state_dict()
+        #    },Path(args.save)/exp_name/('epoch'+str(epoch)+'.pt'))
+
+        # only save the best model
+
+        # only save the best modeL
+        if acc > best_acc:
+            best_acc = acc
             torch.save({
                 'epoch':epoch,
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optim.state_dict()
-            },Path(args.save)/exp_name/('epoch'+str(epoch)+'.pt'))
+            },Path(args.save)/exp_name/('best.pt'))
