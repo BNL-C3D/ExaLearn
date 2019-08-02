@@ -1,4 +1,4 @@
-import os, sys, argparse, time
+import os, sys, argparse, time, json
 from pathlib import Path
 import torch
 import torch.distributed as dist
@@ -41,6 +41,8 @@ def train_model(exp_name, model, train_loader, test_loader, optim, critc,\
         writer.add_scalar('train_loss', tot_loss_train/len(train_loader), epoch)
             
         acc, tot = 0,0
+        acc_per_class,  tot_per_class =\
+            [np.zeros(NUM_CLASS) for _ in range(2)]
         with torch.no_grad():
             for x,y in test_loader:
                 x,y = x.to(device).float(), y.to(device)
@@ -49,6 +51,9 @@ def train_model(exp_name, model, train_loader, test_loader, optim, critc,\
                 tot_loss_test += loss.item()
                 tot += y.size(0)
                 acc += (output.max(1)[1]==y).sum().item()
+                np.add.at(tot_per_class, y.cpu().numpy(), 1)
+                np.add.at(acc_per_class, y.cpu().numpy(),
+                          (output.max(1)[1]==y).cpu().numpy())
         writer.add_scalar('test_loss', tot_loss_test/tot/len(test_loader), epoch)
         writer.add_scalar('test_acc', acc/tot, epoch)
         
@@ -58,7 +63,9 @@ def train_model(exp_name, model, train_loader, test_loader, optim, critc,\
             torch.save({
                 'epoch':epoch,
                 'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optim.state_dict()
+                'optimizer_state_dict': optim.state_dict(),
+                'validation_accuracy' : acc/tot,
+                'per_class_validation_accuracy' : acc_per_class/tot_per_class
             },Path(args.save)/exp_name/('best.pt'))
 
 if __name__ == "__main__":
@@ -85,14 +92,17 @@ if __name__ == "__main__":
                           action='store_false', default=True, required=False)
     optional.add_argument("--gpu-device-id", help="GPU device id [=0]", type=int,
                           required=False, default=0)
-    optional.add_argument("--num-workers", help="number of data loading workers [=8]",
-                          type=int, required=False, default=8)
+    optional.add_argument("--num-workers", help="number of data loading workers [=4]",
+                          type=int, required=False, default=4)
     optional.add_argument("--save", help="directory to save model checkpoints",
                           type=str, default="./save/", required=False)
     optional.add_argument("--tensorboard", help="directory to save tensorboard \
                           summary", type=str, default="./runs/", required=False)
-    optional.add_argument("--use-subset-data", help="train on a subset of the \
-                          training data.", type=float, default=None, required=False)
+    optional.add_argument("--output", help="directory to output model results",
+                          type=str, default="./output/", required=False)
+    optional.add_argument("--train-dev-split", help="(x, y): use x amount of data \
+                          for training, and y amount for validation  training data.",\
+                          type=float, default=None, nargs="+", required=False)
     optional.add_argument("--randseed", help="random seed for selecting a subset of the \
                           training data.", type=int, default=None, required=False)
     optional.add_argument('--local_rank', default=0, type=int)
@@ -119,12 +129,18 @@ if __name__ == "__main__":
     ## setup hyper parameters, data loaders, optimizers and models
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     lr, batch_size, epochs = args.learning_rate, args.batch_size, args.epochs
-    train_loader, test_loader = cosmo_data.get_data(args.input_data,\
-                                                    bsz=args.batch_size,\
-                                                    num_workers=args.num_workers,\
-                                                    pin_memory=args.no_pin_memory,\
-                                                    amount=args.use_subset_data,\
-                                                    seed=args.randseed)
+    train_loader, valid_loader, test_loader = cosmo_data.get_data(args.input_data,
+                                                bsz=args.batch_size,
+                                                num_workers=args.num_workers,
+                                                pin_memory=args.no_pin_memory,
+                                                    amount=args.train_dev_split, 
+                                                                seed=args.randseed)
+    # train_loader, test_loader = cosmo_data.get_data(args.input_data,\
+    #                                                 bsz=args.batch_size,\
+    #                                                 num_workers=args.num_workers,\
+    #                                                 pin_memory=args.no_pin_memory,\
+    #                                                 amount=args.train_dev_split,\
+    #                                                 seed=args.randseed)
     model = get_model(args.arch).to(device)
     if args.optim == "adam":
         optim = torch.optim.Adam(model.parameters(), lr=lr)
@@ -137,9 +153,13 @@ if __name__ == "__main__":
 
     ## setup tensorboard to monitor the training process
     exp_name = args.experiment_name+"_rank_"+str(dist.get_rank()).zfill(4)
+    main_exp_name = args.experiment_name
     writer = SummaryWriter(Path(args.tensorboard)/exp_name)
     (Path(args.tensorboard)/exp_name).mkdir(parents=True, exist_ok=True)
     (Path(args.save)/exp_name).mkdir(parents=True, exist_ok=True)
+    (Path(args.output)/exp_name).mkdir(parents=True, exist_ok=True)
+    if dist.get_rank() == 0:
+        (Path(args.output)/main_exp_name).mkdir(parents=True, exist_ok=True)
     
 
     ## training process
@@ -188,6 +208,19 @@ if __name__ == "__main__":
                           (y2.max(1)[1]==y).cpu().numpy())
 
         if dist.get_rank() == 0:
+            res = {"overall_accuracy"        : acc_opt1/tot,
+                   "overall_accuracy_opt2"   : acc_opt2/tot,
+                   "per_class_test_accuracy" : (acc_per_class_opt1/tot_per_class).tolist(),
+                   "per_class_test_accuracy_opt2" : (acc_per_class_opt2/tot_per_class).tolist(),
+                   "model_arch"              : args.arch,
+                   "batch_size"              : batch_size,
+                   "learning_rate"           : lr,
+                   "optimizer"               : args.optim
+                   }
+
+            with open(Path(args.output)/main_exp_name/('output.json'), 'w') as f:
+                json.dump(res, f)
+
             print("opt 1 acc = ", acc_opt1 / tot)
             print("opt 2 acc = ", acc_opt2 / tot)
             print("tot per class", tot_per_class)

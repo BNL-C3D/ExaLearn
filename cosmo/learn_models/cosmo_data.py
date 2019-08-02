@@ -43,7 +43,7 @@ class Cosmo3D(Dataset):
 
 def np_norm(x): return np.expand_dims((x-8)/28.871186, axis=0)
 
-def get_data(data_dir, bsz, num_workers=8, pin_memory=True,\
+def get_data(data_dir, bsz, num_workers=4, pin_memory=True,\
              amount=None, seed=None):
     """
         create train data loader and validation data loader
@@ -73,20 +73,20 @@ def get_data(data_dir, bsz, num_workers=8, pin_memory=True,\
         return train_loader, test_loader
     elif not isinstance(amount, collections.Sequence) or len(amount) == 1:
         # amount is a number or a sequence with one element
+        # return x amount for training and n-x for dev
         if isinstance(amount, collections.Sequence): amount = amount[0]
         if amount < 1: amount = int(len(train_data)*amount)
         assert ( 0 < amount < len(train_data) )
         idx = shuffle_idx()
-        ## idx = np.arange(len(train_data))
-        ## np_rnd_state = np.random.get_state()
-        ## np.random.seed(seed)
-        ## np.random.shuffle(idx)
-        ## np.random.set_state(np_rnd_state)
         train_loader = DataLoader(train_data, batch_size=bsz, \
                                   sampler=SubsetRandomSampler(idx[:amount]), \
-                                  pin_memory=pin_memory)
+                                  pin_memory=pin_memory,
+                                  num_workers=num_workers)
+        dev_loader   = DataLoader(train_data, batch_size=2*bsz, \
+                           sampler=SubsetRandomSampler(idx[amount:]), \
+                           pin_memory=pin_memory, num_workers=num_workers)
         test_loader = DataLoader(test_data, batch_size=2*bsz)
-        return train_loader, test_loader
+        return train_loader, dev_loader, test_loader
     else:
         # first number for train, 
         # second number for dev, and
@@ -94,23 +94,18 @@ def get_data(data_dir, bsz, num_workers=8, pin_memory=True,\
         train_amount, dev_amount = amount[0], amount[1]
         if train_amount < 1 : train_amount = int(len(train_data)*train_amount)
         if dev_amount < 1   : dev_amount = int(len(train_data)*dev_amount)
-        print(train_amount, dev_amount, len(train_data) )
+        #print(train_amount, dev_amount, len(train_data) )
         assert train_amount + dev_amount <= len(train_data), \
                "Train Amount : {0} and Dev Amount : {1} is greater than the \
                Data Size : {2}".format(train_amount, dev_amount,
                                        len(train_data) ) 
         idx = shuffle_idx()
-        #  idx = np.arange(len(train_data))
-        #  np_rnd_state = np.random.get_state()
-        #  np.random.seed(seed)
-        #  np.random.shuffle(idx)
-        #  np.random.set_state(np_rnd_state)
         train_loader = DataLoader(train_data, batch_size=bsz, \
                            sampler=SubsetRandomSampler(idx[:train_amount]), \
-                           pin_memory=pin_memory)
+                           pin_memory=pin_memory, num_workers=num_workers)
         dev_loader   = DataLoader(train_data, batch_size=2*bsz, \
                            sampler=SubsetRandomSampler(\
                                idx[train_amount:(train_amount+dev_amount)]), \
-                           pin_memory=pin_memory)
+                           pin_memory=pin_memory, num_workers=num_workers)
         test_loader = DataLoader(test_data, batch_size=2*bsz)
         return train_loader, dev_loader, test_loader

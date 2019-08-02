@@ -209,12 +209,6 @@ Then, to load the `anaconda3`: `$ module load anaconda3`
 * `cd music; make; cd ..`
 * `cd pycola; python setup.py build_ext --inplace`
 
-## TODO
-
-[ ] workflow
-[ ] consistent dir structure
-[ ] gen batch of data given cosmological parameters.
-
 ## Troubleshoot
 ### Install MUSIC
 * If cannot find hd5.h file, edit the CONDA env in Makefile

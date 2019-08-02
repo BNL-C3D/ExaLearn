@@ -1,5 +1,6 @@
 import torch
 import sys
+import json
 from torch.utils.tensorboard import SummaryWriter
 from pathlib import Path
 import numpy as np
@@ -41,23 +42,29 @@ if __name__ == "__main__":
                           action='store_false', default=True, required=False)
     optional.add_argument("--gpu-device-id", help="GPU device id [=0]", type=int,
                           required=False, default=0)
-    optional.add_argument("--num-workers", help="number of data loading workers [=8]",
+    optional.add_argument("--num-workers", help="number of data loading workers [=4]",
                           type=int, required=False, default=4)
     optional.add_argument("--save", help="directory to save model checkpoints",
                           type=str, default="./save/", required=False)
+    optional.add_argument("--output", help="directory to output model results",
+                          type=str, default="./output/", required=False)
     optional.add_argument("--tensorboard", help="directory to save tensorboard \
                           summary", type=str, default="./runs/", required=False)
-    optional.add_argument("--use-subset-data", help="train on a subset of the \
-                          training data.", type=float, default=None, required=False)
+    optional.add_argument("--train-dev-split", help="(x, y): use x amount of data \
+                          for training, and y amount for validation  training data.",\
+                          type=float, default=None, nargs="+", required=False)
+    optional.add_argument("--randseed", help="random seed for selecting a subset of the \
+                          training data.", type=int, default=None, required=False)
     args = parser.parse_args() 
 
     lr, batch_size = args.learning_rate, args.batch_size
     torch.cuda.set_device(args.gpu_device_id)
-    train_loader, test_loader = cosmo_data.get_data(args.input_data,
+    train_loader, valid_loader, test_loader = cosmo_data.get_data(args.input_data,
                                                 bsz=args.batch_size,
                                                 num_workers=args.num_workers,
                                                 pin_memory=args.no_pin_memory,
-                                                    amount=args.use_subset_data)
+                                                    amount=args.train_dev_split, 
+                                                                seed=args.randseed)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model  = get_model(args.arch)
     model.to(device)
@@ -74,6 +81,7 @@ if __name__ == "__main__":
     writer = SummaryWriter(Path(args.tensorboard)/exp_name)
     (Path(args.tensorboard)/exp_name).mkdir(parents=True, exist_ok=True)
     (Path(args.save)/exp_name).mkdir(parents=True, exist_ok=True)
+    (Path(args.output)/exp_name).mkdir(parents=True, exist_ok=True)
 
     best_acc = 0
 
@@ -94,31 +102,59 @@ if __name__ == "__main__":
         writer.add_scalar('train_loss', tot_loss_train/len(train_loader), epoch)
             
         acc, tot = 0,0
+        acc_per_class,  tot_per_class =\
+            [np.zeros(NUM_CLASS) for _ in range(2)]
         with torch.no_grad():
-            for x,y in test_loader:
+            for x,y in valid_loader:
                 x,y = x.to(device).float(), y.to(device)
                 output = model(x)
                 loss = critc(output, y)
                 tot_loss_test += loss.item()
                 tot += y.size(0)
                 acc += (output.max(1)[1]==y).sum().item()
+                np.add.at(tot_per_class, y.cpu().numpy(), 1)
+                np.add.at(acc_per_class, y.cpu().numpy(),
+                          (output.max(1)[1]==y).cpu().numpy())
         writer.add_scalar('test_loss', tot_loss_test/tot/len(test_loader), epoch)
         writer.add_scalar('test_acc', acc/tot, epoch)
     
-        #if (epoch+1)%20 == 0:
-        #    torch.save({
-        #        'epoch':epoch,
-        #        'model_state_dict': model.state_dict(),
-        #        'optimizer_state_dict': optim.state_dict()
-        #    },Path(args.save)/exp_name/('epoch'+str(epoch)+'.pt'))
-
-        # only save the best model
-
         # only save the best modeL
         if acc > best_acc:
             best_acc = acc
             torch.save({
                 'epoch':epoch,
                 'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optim.state_dict()
+                'optimizer_state_dict': optim.state_dict(),
+                'validation_accuracy' : acc/tot,
+                'per_class_validation_accuracy' : acc_per_class/tot_per_class
             },Path(args.save)/exp_name/('best.pt'))
+
+    ckpt = torch.load(Path(args.save)/exp_name/'best.pt')
+    model.load_state_dict(ckpt['model_state_dict'])
+    with torch.no_grad():
+        tot_loss_test, tot, acc = 0, 0, 0
+        acc_per_class,  tot_per_class =\
+            [np.zeros(NUM_CLASS) for _ in range(2)]
+        for x,y in test_loader:
+            x,y = x.to(device).float(), y.to(device)
+            output = model(x)
+            loss = critc(output, y)
+            tot_loss_test += loss.item()
+            tot += y.size(0)
+            acc += (output.max(1)[1]==y).sum().item()
+            np.add.at(tot_per_class, y.cpu().numpy(), 1)
+            np.add.at(acc_per_class, y.cpu().numpy(),
+                      (output.max(1)[1]==y).cpu().numpy())
+
+    res = {"overall_accuracy"        : acc/tot,
+           "validation_accuracy"     : ckpt['validation_accuracy'],
+           "per_class_test_accuracy" : (acc_per_class/tot_per_class).tolist(),
+           "peak_epoch"              : ckpt['epoch'],
+           "model_arch"              : args.arch,
+           "batch_size"              : batch_size,
+           "learning_rate"           : lr,
+           "optimizer"               : args.optim
+           }
+
+    with open(Path(args.output)/exp_name/('output.json'), 'w') as f:
+        json.dump(res, f);
