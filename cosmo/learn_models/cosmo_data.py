@@ -109,3 +109,24 @@ def get_data(data_dir, bsz, num_workers=4, pin_memory=True,\
                            pin_memory=pin_memory, num_workers=num_workers)
         test_loader = DataLoader(test_data, batch_size=2*bsz)
         return train_loader, dev_loader, test_loader
+
+def get_subset_data(data_dir, subset_idx, bsz, num_workers=4, pin_memory=True):
+    r"""
+        create train/validation/test data loaders
+        `subset_idx`: is a dictionary with keys: "train" and "validation", and 
+        values are data point indicies.
+    """
+    assert (Path(data_dir).exists() and Path(data_dir).is_dir())
+    train_data = Cosmo3D(data_dir, transform=np_norm)
+    test_data = Cosmo3D(data_dir, train=False, transform=np_norm)
+
+    train_loader = DataLoader(train_data, batch_size=bsz, \
+                              sampler=SubsetRandomSampler(subset_idx['train']), \
+                              pin_memory=pin_memory,
+                              num_workers=num_workers)
+    dev_loader   = DataLoader(train_data, batch_size=2*bsz, \
+                       sampler=SubsetRandomSampler(subset_idx['validation']), \
+                       pin_memory=pin_memory, num_workers=num_workers)
+    test_loader  = DataLoader(test_data, batch_size=2*bsz)
+
+    return train_loader, dev_loader, test_loader

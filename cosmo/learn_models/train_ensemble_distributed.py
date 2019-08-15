@@ -5,25 +5,16 @@ import torch.distributed as dist
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 import cosmo_data
-from cosmo_models import CosmoNet, ResNet3d, Bottleneck3d
+from cosmo_models import get_model 
 
 NUM_CLASS = 6
-
-def get_model( arch ):
-    if arch == "cosmoflow":
-        return CosmoNet(NUM_CLASS)
-    elif arch == "resnext3d":
-        return ResNet3d(Bottleneck3d, [3,4,6,3], NUM_CLASS, groups=32, width_per_group=4)
-    elif arch == "resnext3dsmall":
-        return ResNet3d(Bottleneck3d, [1,2,3,2], NUM_CLASS, groups=32, width_per_group=4)
-    else:
-        print(arch, "not supported", file=sys.stderr)
-        raise NotImplementedError
 
 def train_model(exp_name, model, train_loader, test_loader, optim, critc,\
                 device, writer, args):
     best_acc = 0
     model.train()
+    cum_instances = 0
+    cur_intervals = args.save_intervals if args.save_intervals else 0
     for epoch in range(epochs):
         tot_loss_train, tot_loss_test = 0, 0
         start_time = time.time()
@@ -39,34 +30,38 @@ def train_model(exp_name, model, train_loader, test_loader, optim, critc,\
             optim.step()
         writer.add_scalar('epoch_time', time.time()-start_time, epoch)
         writer.add_scalar('train_loss', tot_loss_train/len(train_loader), epoch)
+
             
-        acc, tot = 0,0
-        acc_per_class,  tot_per_class =\
-            [np.zeros(NUM_CLASS) for _ in range(2)]
-        with torch.no_grad():
-            for x,y in test_loader:
-                x,y = x.to(device).float(), y.to(device)
-                output = model(x)
-                loss = critc(output, y)
-                tot_loss_test += loss.item()
-                tot += y.size(0)
-                acc += (output.max(1)[1]==y).sum().item()
-                np.add.at(tot_per_class, y.cpu().numpy(), 1)
-                np.add.at(acc_per_class, y.cpu().numpy(),
-                          (output.max(1)[1]==y).cpu().numpy())
-        writer.add_scalar('test_loss', tot_loss_test/tot/len(test_loader), epoch)
-        writer.add_scalar('test_acc', acc/tot, epoch)
-        
-        # only save the best modeL
-        if acc > best_acc:
-            best_acc = acc
-            torch.save({
-                'epoch':epoch,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optim.state_dict(),
-                'validation_accuracy' : acc/tot,
-                'per_class_validation_accuracy' : acc_per_class/tot_per_class
-            },Path(args.save)/exp_name/('best.pt'))
+        cum_instances += cnt
+        if args.save_intervals == None or cum_instances > cur_intervals:
+            cur_intervals += args.save_intervals if args.save_intervals else 0
+            acc, tot = 0,0
+            acc_per_class,  tot_per_class =\
+                [np.zeros(NUM_CLASS) for _ in range(2)]
+            with torch.no_grad():
+                for x,y in test_loader:
+                    x,y = x.to(device).float(), y.to(device)
+                    output = model(x)
+                    loss = critc(output, y)
+                    tot_loss_test += loss.item()
+                    tot += y.size(0)
+                    acc += (output.max(1)[1]==y).sum().item()
+                    np.add.at(tot_per_class, y.cpu().numpy(), 1)
+                    np.add.at(acc_per_class, y.cpu().numpy(),
+                              (output.max(1)[1]==y).cpu().numpy())
+            writer.add_scalar('test_loss', tot_loss_test/tot/len(test_loader), epoch)
+            writer.add_scalar('test_acc', acc/tot, epoch)
+            
+            # only save the best modeL
+            if acc > best_acc:
+                best_acc = acc
+                torch.save({
+                    'epoch':epoch,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optim.state_dict(),
+                    'validation_accuracy' : acc/tot,
+                    'per_class_validation_accuracy' : acc_per_class/tot_per_class
+                },Path(args.save)/exp_name/('best.pt'))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -103,6 +98,11 @@ if __name__ == "__main__":
     optional.add_argument("--train-dev-split", help="(x, y): use x amount of data \
                           for training, and y amount for validation  training data.",\
                           type=float, default=None, nargs="+", required=False)
+    optional.add_argument("--use-subset-data", help="filename, contains data \
+                          indicies", type=str, default=None, required=False)
+    optional.add_argument("--save-intervals", help="save the best model when \
+                          the cumulative instances surpass the current save threshold.",\
+                          type=int, default=None, required=False)
     optional.add_argument("--randseed", help="random seed for selecting a subset of the \
                           training data.", type=int, default=None, required=False)
     optional.add_argument('--local_rank', default=0, type=int)
@@ -129,19 +129,32 @@ if __name__ == "__main__":
     ## setup hyper parameters, data loaders, optimizers and models
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     lr, batch_size, epochs = args.learning_rate, args.batch_size, args.epochs
-    train_loader, valid_loader, test_loader = cosmo_data.get_data(args.input_data,
+    
+    if args.train_dev_split:
+        train_loader, valid_loader, test_loader = cosmo_data.get_data(args.input_data,
                                                 bsz=args.batch_size,
                                                 num_workers=args.num_workers,
                                                 pin_memory=args.no_pin_memory,
                                                     amount=args.train_dev_split, 
                                                                 seed=args.randseed)
-    # train_loader, test_loader = cosmo_data.get_data(args.input_data,\
-    #                                                 bsz=args.batch_size,\
-    #                                                 num_workers=args.num_workers,\
-    #                                                 pin_memory=args.no_pin_memory,\
-    #                                                 amount=args.train_dev_split,\
-    #                                                 seed=args.randseed)
-    model = get_model(args.arch).to(device)
+    elif args.use_subset_data:
+        subset_idx = None
+        with open(args.use_subset_data, 'r') as f:
+            subset_idx = json.load(f)
+        train_loader, valid_loader, test_loader = cosmo_data.get_subset_data(args.input_data,
+                                                    subset_idx,
+                                                    bsz=args.batch_size,
+                                                    num_workers=args.num_workers,
+                                                    pin_memory=args.no_pin_memory,
+                                                    )
+    else:
+        train_loader, test_loader = cosmo_data.get_data(args.input_data,\
+                                                    bsz=args.batch_size,\
+                                                    num_workers=args.num_workers,\
+                                                    pin_memory=args.no_pin_memory,\
+                                                    )
+
+    model = get_model(args.arch, NUM_CLASS).to(device)
     if args.optim == "adam":
         optim = torch.optim.Adam(model.parameters(), lr=lr)
     elif args.optim == "sgd":

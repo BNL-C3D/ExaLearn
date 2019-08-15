@@ -196,4 +196,17 @@ class ResNet3d(nn.Module):
         x = self.fc(x)
 
         return x
-  
+
+
+
+def get_model(arch, num_class):
+    if arch == "cosmoflow":
+        return CosmoNet(num_class)
+    elif arch == "resnext3d":
+        return ResNet3d(Bottleneck3d, [3,4,6,3], num_class, groups=32, width_per_group=4)
+    elif arch == "resnext3dsmall":
+        return ResNet3d(Bottleneck3d, [1,2,3,2], num_class, groups=32, width_per_group=4)
+    else:
+        print(arch, "not supported", file=sys.stderr)
+        raise NotImplementedError
+
