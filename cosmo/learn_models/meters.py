@@ -16,11 +16,14 @@ class AvgMeter():
         self.cnt, self.cum = None, None
         self.func = func
     
-    def __call__(self, *args, **kwags):
+    def update(self, *args, **kwags):
         bsz, tmp = self.func(*args, **kwags) 
-        self.cnt = bsz + self.cnt if self.cnt is not None else bsz
-        self.cum = tmp + self.cum if self.cum is not None else tmp
+        self.cnt = (bsz + self.cnt) if self.cnt is not None else bsz
+        self.cum = (tmp + self.cum) if self.cum is not None else tmp
         return self.cum / self.cnt
+    
+    def __call__(self, *args, **kwags):
+        return self.update(*args, **kwags)
 
     def reset(self):
         self.cnt, self.cum = None, None
@@ -31,6 +34,7 @@ class AvgMeter():
 
 def mk(loss):
     r"""
+        Avg Meter Adapter for Loss functions
         make loss function to return (bsz, value)
     """
 
@@ -55,9 +59,10 @@ def accuracy_per_class(output, y):
         y is a tensor of size (Bsz)
         return: accuracy counts per class
     """
-    cnt_per_class = np.zeros(output.shape[1]) ## num of classes
-    acc_per_class = np.zeros(output.shape[1]) ## num of classes
+    num_class = output.size(1)
+    cnt_per_class = np.zeros(num_class) ## num of classes
+    acc_per_class = np.zeros(num_class) ## num of classes
     np.add.at(cnt_per_class, y.cpu().numpy(), 1)
-    np.add.at(acc_per_class, (output.max(1)[1] == y).cpu().numpy(), 1)
+    np.add.at(acc_per_class, y.cpu().numpy(), (output.max(1)[1] == y).cpu().numpy())
     return cnt_per_class, acc_per_class
 

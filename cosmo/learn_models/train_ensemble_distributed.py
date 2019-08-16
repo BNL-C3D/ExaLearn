@@ -5,139 +5,84 @@ import torch.distributed as dist
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 import cosmo_data
-from cosmo_models import get_model 
+from cosmo_models import get_model
+from cosmo_train import train_model, eval_model, train
+from parser import get_parser
 
-NUM_CLASS = 6
-
-def train_model(exp_name, model, train_loader, test_loader, optim, critc,\
-                device, writer, args):
-    best_acc = 0
-    model.train()
-    cum_instances = 0
-    cur_intervals = args.save_intervals if args.save_intervals else 0
-    for epoch in range(epochs):
-        tot_loss_train, tot_loss_test = 0, 0
-        start_time = time.time()
-        cnt = 0
-        for x,y in train_loader:
-            x,y = x.to(device).float(), y.to(device)
-            output = model(x)
-            loss   = critc(output, y)
-            tot_loss_train += loss.item()
-            cnt += y.size(0)
-            optim.zero_grad()
-            loss.backward()
-            optim.step()
-        writer.add_scalar('epoch_time', time.time()-start_time, epoch)
-        writer.add_scalar('train_loss', tot_loss_train/len(train_loader), epoch)
-
-            
-        cum_instances += cnt
-        if args.save_intervals == None or cum_instances > cur_intervals:
-            cur_intervals += args.save_intervals if args.save_intervals else 0
-            acc, tot = 0,0
-            acc_per_class,  tot_per_class =\
-                [np.zeros(NUM_CLASS) for _ in range(2)]
-            with torch.no_grad():
-                for x,y in test_loader:
-                    x,y = x.to(device).float(), y.to(device)
-                    output = model(x)
-                    loss = critc(output, y)
-                    tot_loss_test += loss.item()
-                    tot += y.size(0)
-                    acc += (output.max(1)[1]==y).sum().item()
-                    np.add.at(tot_per_class, y.cpu().numpy(), 1)
-                    np.add.at(acc_per_class, y.cpu().numpy(),
-                              (output.max(1)[1]==y).cpu().numpy())
-            writer.add_scalar('test_loss', tot_loss_test/tot/len(test_loader), epoch)
-            writer.add_scalar('test_acc', acc/tot, epoch)
-            
-            # only save the best modeL
-            if acc > best_acc:
-                best_acc = acc
-                torch.save({
-                    'epoch':epoch,
-                    'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optim.state_dict(),
-                    'validation_accuracy' : acc/tot,
-                    'per_class_validation_accuracy' : acc_per_class/tot_per_class
-                },Path(args.save)/exp_name/('best.pt'))
+## NUM_CLASS = 6
+## 
+## def train_model(exp_name, model, train_loader, test_loader, optim, critc,\
+##                 device, writer, args):
+##     best_acc = 0
+##     model.train()
+##     cum_instances = 0
+##     cur_intervals = args.save_intervals if args.save_intervals else 0
+##     for epoch in range(epochs):
+##         tot_loss_train, tot_loss_test = 0, 0
+##         start_time = time.time()
+##         cnt = 0
+##         for x,y in train_loader:
+##             x,y = x.to(device).float(), y.to(device)
+##             output = model(x)
+##             loss   = critc(output, y)
+##             tot_loss_train += loss.item()
+##             cnt += y.size(0)
+##             optim.zero_grad()
+##             loss.backward()
+##             optim.step()
+##         writer.add_scalar('epoch_time', time.time()-start_time, epoch)
+##         writer.add_scalar('train_loss', tot_loss_train/len(train_loader), epoch)
+## 
+##             
+##         cum_instances += cnt
+##         if args.save_intervals == None or cum_instances > cur_intervals:
+##             cur_intervals += args.save_intervals if args.save_intervals else 0
+##             acc, tot = 0,0
+##             acc_per_class,  tot_per_class =\
+##                 [np.zeros(NUM_CLASS) for _ in range(2)]
+##             with torch.no_grad():
+##                 for x,y in test_loader:
+##                     x,y = x.to(device).float(), y.to(device)
+##                     output = model(x)
+##                     loss = critc(output, y)
+##                     tot_loss_test += loss.item()
+##                     tot += y.size(0)
+##                     acc += (output.max(1)[1]==y).sum().item()
+##                     np.add.at(tot_per_class, y.cpu().numpy(), 1)
+##                     np.add.at(acc_per_class, y.cpu().numpy(),
+##                               (output.max(1)[1]==y).cpu().numpy())
+##             writer.add_scalar('test_loss', tot_loss_test/tot/len(test_loader), epoch)
+##             writer.add_scalar('test_acc', acc/tot, epoch)
+##             
+##             # only save the best modeL
+##             if acc > best_acc:
+##                 best_acc = acc
+##                 torch.save({
+##                     'epoch':epoch,
+##                     'model_state_dict': model.state_dict(),
+##                     'optimizer_state_dict': optim.state_dict(),
+##                     'validation_accuracy' : acc/tot,
+##                     'per_class_validation_accuracy' : acc_per_class/tot_per_class
+##                 },Path(args.save)/exp_name/('best.pt'))
+## 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser._action_groups.pop()
-    required = parser.add_argument_group('required arguments')
-    optional = parser.add_argument_group('optional arguments')
-    required.add_argument("-n", "--experiment-name", help="experiment name",\
-                          type=str, required=True)
-    required.add_argument("-a", "--arch", help="select model architecture",
-                          action='store',
-                          choices=['cosmoflow', 'resnext3d', 'resnext3dsmall'],
-                          type=str, required=True)
-    required.add_argument("-o", "--optim", help="select optimizer",\
-                          action='store', choices=['sgd', 'adam'],\
-                          type=str, required=True)
-    required.add_argument("-i", "--input-data", \
-                          help="directory containing input data", type=str, required=True)
-    required.add_argument("-l", "--learning-rate", help="learning rate",\
-                          type=float, required=True)
-    required.add_argument("-b", "--batch-size", help="batch size", type=int, required=True)
-    required.add_argument("-e", "--epochs", help="number of epochs", type=int, required=True)
-    optional.add_argument("--no-pin-memory", help="Not using pin memory",
-                          action='store_false', default=True, required=False)
-    optional.add_argument("--gpu-device-id", help="GPU device id [=0]", type=int,
-                          required=False, default=0)
-    optional.add_argument("--num-workers", help="number of data loading workers [=4]",
-                          type=int, required=False, default=4)
-    optional.add_argument("--save", help="directory to save model checkpoints",
-                          type=str, default="./save/", required=False)
-    optional.add_argument("--tensorboard", help="directory to save tensorboard \
-                          summary", type=str, default="./runs/", required=False)
-    optional.add_argument("--output", help="directory to output model results",
-                          type=str, default="./output/", required=False)
-    optional.add_argument("--train-dev-split", help="(x, y): use x amount of data \
-                          for training, and y amount for validation  training data.",\
-                          type=float, default=None, nargs="+", required=False)
-    optional.add_argument("--use-subset-data", help="filename, contains data \
-                          indicies", type=str, default=None, required=False)
-    optional.add_argument("--save-intervals", help="save the best model when \
-                          the cumulative instances surpass the current save threshold.",\
-                          type=int, default=None, required=False)
-    optional.add_argument("--randseed", help="random seed for selecting a subset of the \
-                          training data.", type=int, default=None, required=False)
-    optional.add_argument('--local_rank', default=0, type=int)
-    optional.add_argument('--skip_train', action='store_true', default=False)
-    optional.add_argument('--backend', default='nccl', type=str,\
-                          choices=['nccl', 'ddl'], required=False)
-    args = parser.parse_args() 
+    NUM_CLASS = 6
+    args = get_parser()
     
-    ## check if distributed 
-    args.distributed = False
-    if 'WORLD_SIZE' in os.environ:
-        args.distributed = int(os.environ['WORLD_SIZE']) > 1
-    args.gpu = 0
-    args.world_size = 1
-    if args.distributed:
-        args.gpu = args.local_rank % torch.cuda.device_count()
-        torch.cuda.set_device(args.gpu)
-        torch.distributed.init_process_group(backend=args.backend, init_method='env://')
-        args.world_size = torch.distributed.get_world_size()
-    else:
-        args.world_size = torch.cuda.device_count()
-    
-
     ## setup hyper parameters, data loaders, optimizers and models
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     lr, batch_size, epochs = args.learning_rate, args.batch_size, args.epochs
     
-    if args.train_dev_split:
+    ## Get Data
+    if args.train_dev_split is not None:
         train_loader, valid_loader, test_loader = cosmo_data.get_data(args.input_data,
                                                 bsz=args.batch_size,
                                                 num_workers=args.num_workers,
                                                 pin_memory=args.no_pin_memory,
                                                     amount=args.train_dev_split, 
                                                                 seed=args.randseed)
-    elif args.use_subset_data:
+    elif args.use_subset_data is not None:
         subset_idx = None
         with open(args.use_subset_data, 'r') as f:
             subset_idx = json.load(f)
@@ -177,8 +122,11 @@ if __name__ == "__main__":
 
     ## training process
     if not args.skip_train:
-        train_model(exp_name, model, train_loader, test_loader, optim, \
-                    critc, device, writer, args)
+        print("valid_loader", len(valid_loader))
+        train(exp_name, model, train_loader, valid_loader, optim, \
+              critc, device, args, writer=writer)
+        # train_model(exp_name, model, train_loader, test_loader, optim, \
+        #             critc, device, writer, args)
 
 
     ## at the end of training, do ensemble eval
