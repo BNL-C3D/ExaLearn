@@ -2,7 +2,7 @@ import inspect
 import numpy as np
 import cosmo_data
 
-def calc_budget_per_class(total_budget, weights):
+def calc_budget_per_class(total_budget, weights, norm=None):
     r'''
         given the total budget and weights (as prob), 
         return a list of budgets 
@@ -12,7 +12,10 @@ def calc_budget_per_class(total_budget, weights):
 
     n = len(weights)
     y = np.asarray(weights)
-    y = y/y.sum()
+    if norm:
+        y = norm(y)
+    else:
+        y = y/y.sum()
     y = np.floor(total_budget * y)
     residue = total_budget - y.sum()
     while residue > 0 :
@@ -64,6 +67,7 @@ def sample_given_budget_excluding(budget_per_class, data_set, exclusion, rnd_see
     return rst
 
 if __name__ == '__main__':
+    ## testing:
     x = [1.51937983, 4.8979591 , 2.29166665, 2.98666665, 4.40449431, 1.47639485]
     print("with weights =", x)
     print("and budget = ", 100)

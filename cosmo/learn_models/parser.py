@@ -65,5 +65,7 @@ def get_parser():
         args.world_size = torch.cuda.device_count()
         torch.cuda.set_device(args.gpu_device_id)
 
+    (Path(args.output)/args.experiment_name).mkdir(parents=True, exist_ok=True)
+
     return args
     

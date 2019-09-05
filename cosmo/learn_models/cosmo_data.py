@@ -43,6 +43,7 @@ class Cosmo3D(Dataset):
 
 def np_norm(x): return np.expand_dims((x-8)/28.871186, axis=0)
 
+
 def get_data(data_dir, bsz, num_workers=4, pin_memory=True,\
              amount=None, seed=None):
     """
@@ -109,6 +110,7 @@ def get_data(data_dir, bsz, num_workers=4, pin_memory=True,\
                            pin_memory=pin_memory, num_workers=num_workers)
         test_loader = DataLoader(test_data, batch_size=2*bsz)
         return train_loader, dev_loader, test_loader
+
 
 def get_subset_data(data_dir, subset_idx, bsz, num_workers=4, pin_memory=True):
     r"""
