@@ -97,8 +97,7 @@ for kth_stage in range(num_stages):
     #### Launch Distributed Ensemble Training
     cmd = cmd_template.format(expname=current_exp, output=output_fld, input=data_dir,
                               np=num_gpus, budget=stage_bgts[kth_stage], run=nth_run,
-                              epoch=15/(sum(stage_bgts[:kth_stage+1])/2000),
-                              #epoch=10,
+                              epoch=int(15/(sum(stage_bgts[:kth_stage+1])/2000)),
                               stage=kth_stage, idxfile=idxfile)
     rtn = subprocess.run(['python'+" " + cmd], shell=True)
 
