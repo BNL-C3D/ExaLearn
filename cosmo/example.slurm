@@ -1,7 +1,7 @@
 #!/bin/sh
 #SBATCH -N 1
 #SBATCH -J pycola
-#SBATCH -t 3-2:00:00 # 1day 2 hours
+#SBATCH -t 5-2:00:00 # 5day 2 hours
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user <yourname>@<your.domain>
 
