@@ -1,0 +1,30 @@
+In discussion with Frank, we modified the “stories” for the ExaLearn - ODED track.  Please see below. The updated stories, reflects the change in focus and expertise. 
+
+One additional item we need to discuss during today’s meeting are stories for FY2021.
+
+Best
+Shantenu 
+
+— Story (to date): We began by investigating neural network models to infer
+cosmological parameters from simulation data. This proved challenging due to the
+complexity of the model and in particular the training required. Since the start
+of the year, we have been working on a simplified OED problem involving a test
+system that has (i) Uncertain system dynamics, (ii) User-specified
+control/intervention and (iii) Cost of intervention under uncertainty and (iv)
+Experimental measurement that is assumed to be expensive. The question we have
+formulated — thought not fully answered yet is: what experiment should be made
+next that (1) reduces uncertainty and (2) is optimal across all uncertainty
+w.r.t. the cost?
+
+— Story (for September): By Sept 30, 2020 we will have implemented the above
+scenario using code on Summit. The workflow will use a the library
+(ExaLearn-ODED) API to create the workflow.  We are also working on the optimal
+filtering and selection of a 4-stage execution pipeline that emulates the
+4-stage campaign used in the covid-19 drug selection / design
+project. Specifically the objective is to optimize the overall pipeline for
+screening potential target molecules for COVID-19 by tuning the “selectivity” of
+each stage so as to achieve the objective of maximizing the proportion (or
+number) of the potential target molecules that pass the final stage filter and
+which are promising target molecules whose stage-4 score exceeds the specified
+threshold. We will implement this workflow will use ExaLearn-ODED library and
+will execute on Summit.

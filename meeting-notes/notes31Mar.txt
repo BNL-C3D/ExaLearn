@@ -1,0 +1,7 @@
+Stage 1: Screening to identify “leads” that have the potential to bind and inhibit viral targets. This stage involves traditional docking as well as ML-based screening and generative modeling. 
+
+Stage 2: Physics-based screening of leads and refine- ment of a subset of molecules from Stage 1. 
+
+Stage 3: Machine Learning (ML) models to steer ensembles of molecular dynamics (MD) simulations to enhance the ability to locate novel pocket conformations, model specific binding regions and understand mechanistic changes involving drugs. DeepDriveMD [2] provides these capabilities and has demonstrated O(10)-O(100) times improvement for small proteins. 
+
+Stage 4: MD based free energy (also called binding affinity) computations in which precise and accurate calculations are performed to enable ranking and priortization of compounds selected from prior stages. The ESMACS protocol [3, 4] provides an optimal balance between computational cost and accuracy. When implemented using high-throughput binding affinity calculation (HTBAC) [5] that permits adaptive execution, the accuracy for given computational cost is approximately O(10) [6] greater than traditional implementations.

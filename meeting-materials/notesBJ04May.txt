@@ -1,0 +1,17 @@
+I am sending you the document that I presented at today’s meeting, which roughly summarizes how we could think about optimizing the overall pipeline for screening potential target molecules for COVID-19.
+Since these are just my initial ideas, I believe there are many things we could do to update the document to make the idea more realistic/useful.
+
+Possibilities include:
+
+- define the objective (reward/cost) in a different manner
+- think about using multiple features from stage-i for selecting molecules that will be passed to stage-(I+1) for further screening
+- rather than simple thresholding, when we use multiple outputs/features obtained from stage-i filter, we could think about using more complicated decision boundaries learned via AI/ML
+- from simple to more advanced strategies for learning the unknown joint PDF f() for the scores/features from the multiple stages.
+
+Please feel free to make any suggestions or ask any questions you may have!
+Thank you.
+
+Best,
+
+Byung-Jun
+

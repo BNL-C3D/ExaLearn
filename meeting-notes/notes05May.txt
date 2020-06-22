@@ -1,0 +1,21 @@
+From Byung-Jun Possibilities include:
+
+- define the objective (reward/cost) in a different manner
+- think about using multiple features from stage-i for selecting molecules that will be passed to stage-(I+1) for further screening
+- rather than simple thresholding, when we use multiple outputs/features obtained from stage-i filter, we could think about using more complicated decision boundaries learned via AI/ML
+- from simple to more advanced strategies for learning the unknown joint PDF f() for the scores/features from the multiple stages.
+
+Please feel free to make any suggestions or ask any questions you may have!
+Thank you.
+
+Thank you for the document. 
+
+I reviewed the document over the weekend, and I think the core ideas are in line with the use case and desired outcome.  Thank you. 
+
+- Would you be Ok with us trying to see what mileage we get with simple thresholding, before we develop something more sophisticated? 
+
+- I think a challenge will be to define the “baseline” performance against which we would measure “enhanced” performance. 
+
+- I would be glad to discuss further thoughts about the objective (reward / cost). Ideally there would be two different approaches: the first would be science case agnostic, and the could be science case specific. 
+
+Look forward to discussing shortly. 

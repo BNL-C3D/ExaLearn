@@ -1,0 +1,8 @@
+Some notes and todos:
+
+- Pseudo-code for Byung-Jun’s application
+- Byung-Jun to share a pointer to the python code for KO (not the pycuda implementation)
+- Understanding scaling requirements for Byung-Jun’s application and plan implementation
+- Investigate / generality to SEIR application
+- Review pseudo-code for Anthony’s application and examine similarity of the workflow / computational execution to Byung-Jun’s application. Start planning experiments.
+

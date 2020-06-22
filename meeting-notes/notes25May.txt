@@ -1,0 +1,14 @@
+As promised in the last ExaLearn - ODED meeting, I’m providing the “real” scenario for the 4 stage pipeline. These numbers are partial — for stages 1 to 3, and were generated in consultation with
+Arvind. 
+
+The upshot:
+ —  the distributions of scores are not symmetrical and are long-tailed
+ —  typically 5% selected from stage 1 (docking) to stage 2  (AI driven MD) 
+ —  currently 8% of the trajectory state is used to determine which candidates to move to stage 3 
+
+Does this provide some basis to begin constructing a scenario even if not perfect or final ? If not, please let me know what more I could provide please. 
+
+(I anticipate some real numbers of candidates selected after stage 3 to be available in a week or so).
+
+Frank — you had to leave at the hour, but we also had a discussion of Anthony’s modeling work. I believe there is a need to "close the loop” of how we can convert Anthony’s work to 
+model a real ODED scenario in the realm of materials (even if it is not MOCU). Any suggestions on how to do this would be great and helpful.
